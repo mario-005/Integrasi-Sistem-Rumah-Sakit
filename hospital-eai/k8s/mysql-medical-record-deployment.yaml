@@ -1,0 +1,48 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mysql-medical-record-config
+data:
+  MYSQL_DATABASE: medical_db
+  MYSQL_USER: medical_user
+  MYSQL_PASSWORD: medical_pass
+  MYSQL_ROOT_PASSWORD: root_pass
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql-medical-record
+spec:
+  selector:
+    app: mysql-medical-record
+  ports:
+    - port: 3306
+      targetPort: 3306
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mysql-medical-record
+spec:
+  selector:
+    matchLabels:
+      app: mysql-medical-record
+  template:
+    metadata:
+      labels:
+        app: mysql-medical-record
+    spec:
+      containers:
+        - name: mysql
+          image: mysql:8
+          ports:
+            - containerPort: 3306
+          envFrom:
+            - configMapRef:
+                name: mysql-medical-record-config
+          volumeMounts:
+            - mountPath: /var/lib/mysql
+              name: storage
+      volumes:
+        - name: storage
+          emptyDir: {}

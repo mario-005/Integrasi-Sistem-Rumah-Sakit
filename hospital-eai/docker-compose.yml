@@ -1,0 +1,179 @@
+version: '3.8'
+
+services:
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "8080:80"
+    volumes:
+      - ./gateway/nginx.conf:/etc/nginx/nginx.conf
+    depends_on:
+      - registration-service
+      - medical-record-service
+      - pharmacy-service
+      - billing-service
+      - integration-service
+    networks:
+      - hospital-network
+    restart: unless-stopped
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    healthcheck:
+      test: ["CMD", "rabbitmqctl", "status"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    networks:
+      - hospital-network
+    restart: unless-stopped
+
+  postgres-registration:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: registration_db
+      POSTGRES_USER: registration_user
+      POSTGRES_PASSWORD: registration_pass
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-registration-data:/var/lib/postgresql/data
+    networks:
+      - hospital-network
+    restart: unless-stopped
+
+  mysql-medical-record:
+    image: mysql:8
+    environment:
+      MYSQL_DATABASE: medical_db
+      MYSQL_USER: medical_user
+      MYSQL_PASSWORD: medical_pass
+      MYSQL_ROOT_PASSWORD: root_pass
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql-medical-record-data:/var/lib/mysql
+    networks:
+      - hospital-network
+    restart: unless-stopped
+
+  mongodb-pharmacy:
+    image: mongo:6
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb-pharmacy-data:/data/db
+    networks:
+      - hospital-network
+    restart: unless-stopped
+
+  postgres-billing:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: billing_db
+      POSTGRES_USER: billing_user
+      POSTGRES_PASSWORD: billing_pass
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres-billing-data:/var/lib/postgresql/data
+    networks:
+      - hospital-network
+    restart: unless-stopped
+
+  registration-service:
+    build: ./registration-service
+    ports:
+      - "8001:8000"
+    env_file:
+      - .env
+    depends_on:
+      postgres-registration:
+        condition: service_started
+      rabbitmq:
+        condition: service_started
+    networks:
+      - hospital-network
+    restart: unless-stopped
+
+  medical-record-service:
+    build: ./medical-record-service
+    ports:
+      - "8002:8000"
+    env_file:
+      - .env
+    depends_on:
+      mysql-medical-record:
+        condition: service_started
+      rabbitmq:
+        condition: service_started
+    networks:
+      - hospital-network
+    restart: unless-stopped
+
+  pharmacy-service:
+    build: ./pharmacy-service
+    ports:
+      - "8003:8000"
+    env_file:
+      - .env
+    depends_on:
+      mongodb-pharmacy:
+        condition: service_started
+      rabbitmq:
+        condition: service_started
+    networks:
+      - hospital-network
+    restart: unless-stopped
+
+  billing-service:
+    build: ./billing-service
+    ports:
+      - "8004:8000"
+    env_file:
+      - .env
+    depends_on:
+      postgres-billing:
+        condition: service_started
+      rabbitmq:
+        condition: service_started
+    networks:
+      - hospital-network
+    restart: unless-stopped
+
+  integration-service:
+    build: ./integration-service
+    ports:
+      - "8005:8000"
+    env_file:
+      - .env
+    depends_on:
+      rabbitmq:
+        condition: service_started
+      registration-service:
+        condition: service_started
+      medical-record-service:
+        condition: service_started
+      pharmacy-service:
+        condition: service_started
+      billing-service:
+        condition: service_started
+    networks:
+      - hospital-network
+    restart: unless-stopped
+
+volumes:
+  postgres-registration-data:
+  mysql-medical-record-data:
+  mongodb-pharmacy-data:
+  postgres-billing-data:
+
+networks:
+  hospital-network:
+    driver: bridge

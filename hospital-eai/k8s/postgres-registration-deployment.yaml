@@ -1,0 +1,47 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-registration-config
+data:
+  POSTGRES_DB: registration_db
+  POSTGRES_USER: registration_user
+  POSTGRES_PASSWORD: registration_pass
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-registration
+spec:
+  selector:
+    app: postgres-registration
+  ports:
+    - port: 5432
+      targetPort: 5432
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres-registration
+spec:
+  selector:
+    matchLabels:
+      app: postgres-registration
+  template:
+    metadata:
+      labels:
+        app: postgres-registration
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:15-alpine
+          ports:
+            - containerPort: 5432
+          envFrom:
+            - configMapRef:
+                name: postgres-registration-config
+          volumeMounts:
+            - mountPath: /var/lib/postgresql/data
+              name: storage
+      volumes:
+        - name: storage
+          emptyDir: {}

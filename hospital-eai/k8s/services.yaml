@@ -1,0 +1,266 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: hospital-eai-config
+data:
+  REGISTRATION_DATABASE_URL: "postgresql://registration_user:registration_pass@postgres-registration:5432/registration_db"
+  MEDICAL_RECORD_DATABASE_URL: "mysql+pymysql://medical_user:medical_pass@mysql-medical-record:3306/medical_db"
+  PHARMACY_MONGODB_URL: "mongodb://mongodb-pharmacy:27017/pharmacy_db"
+  BILLING_DATABASE_URL: "postgresql://billing_user:billing_pass@postgres-billing:5432/billing_db"
+  RABBITMQ_HOST: "rabbitmq"
+  RABBITMQ_PORT: "5672"
+  RABBITMQ_USER: "guest"
+  RABBITMQ_PASS: "guest"
+  PATIENT_REGISTERED_QUEUE: "patient_registered_queue"
+  PRESCRIPTION_CREATED_QUEUE: "prescription_created_queue"
+  MEDICINE_DISPENSED_QUEUE: "medicine_dispensed_queue"
+  INVOICE_CREATED_QUEUE: "invoice_created_queue"
+  REGISTRATION_SERVICE_URL: "http://registration-service:8000"
+  MEDICAL_RECORD_SERVICE_URL: "http://medical-record-service:8000"
+  PHARMACY_SERVICE_URL: "http://pharmacy-service:8000"
+  BILLING_SERVICE_URL: "http://billing-service:8000"
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: registration-service
+spec:
+  selector:
+    app: registration-service
+  ports:
+    - port: 8000
+      targetPort: 8000
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: registration-service
+spec:
+  selector:
+    matchLabels:
+      app: registration-service
+  template:
+    metadata:
+      labels:
+        app: registration-service
+    spec:
+      containers:
+        - name: registration
+          image: hospital-eai/registration-service:latest
+          ports:
+            - containerPort: 8000
+          envFrom:
+            - configMapRef:
+                name: hospital-eai-config
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: medical-record-service
+spec:
+  selector:
+    app: medical-record-service
+  ports:
+    - port: 8000
+      targetPort: 8000
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: medical-record-service
+spec:
+  selector:
+    matchLabels:
+      app: medical-record-service
+  template:
+    metadata:
+      labels:
+        app: medical-record-service
+    spec:
+      containers:
+        - name: medical-record
+          image: hospital-eai/medical-record-service:latest
+          ports:
+            - containerPort: 8000
+          envFrom:
+            - configMapRef:
+                name: hospital-eai-config
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: pharmacy-service
+spec:
+  selector:
+    app: pharmacy-service
+  ports:
+    - port: 8000
+      targetPort: 8000
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pharmacy-service
+spec:
+  selector:
+    matchLabels:
+      app: pharmacy-service
+  template:
+    metadata:
+      labels:
+        app: pharmacy-service
+    spec:
+      containers:
+        - name: pharmacy
+          image: hospital-eai/pharmacy-service:latest
+          ports:
+            - containerPort: 8000
+          envFrom:
+            - configMapRef:
+                name: hospital-eai-config
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: billing-service
+spec:
+  selector:
+    app: billing-service
+  ports:
+    - port: 8000
+      targetPort: 8000
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: billing-service
+spec:
+  selector:
+    matchLabels:
+      app: billing-service
+  template:
+    metadata:
+      labels:
+        app: billing-service
+    spec:
+      containers:
+        - name: billing
+          image: hospital-eai/billing-service:latest
+          ports:
+            - containerPort: 8000
+          envFrom:
+            - configMapRef:
+                name: hospital-eai-config
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: integration-service
+spec:
+  selector:
+    app: integration-service
+  ports:
+    - port: 8000
+      targetPort: 8000
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: integration-service
+spec:
+  selector:
+    matchLabels:
+      app: integration-service
+  template:
+    metadata:
+      labels:
+        app: integration-service
+    spec:
+      containers:
+        - name: integration
+          image: hospital-eai/integration-service:latest
+          ports:
+            - containerPort: 8000
+          envFrom:
+            - configMapRef:
+                name: hospital-eai-config
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx
+spec:
+  type: LoadBalancer
+  selector:
+    app: nginx
+  ports:
+    - port: 80
+      targetPort: 80
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx
+spec:
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers:
+        - name: nginx
+          image: nginx:alpine
+          ports:
+            - containerPort: 80
+          volumeMounts:
+            - mountPath: /etc/nginx/nginx.conf
+              subPath: nginx.conf
+              name: nginx-config
+      volumes:
+        - name: nginx-config
+          configMap:
+            name: nginx-config
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-config
+data:
+  nginx.conf: |
+    events {
+        worker_connections 1024;
+    }
+    http {
+        upstream registration { server registration-service:8000; }
+        upstream medical { server medical-record-service:8000; }
+        upstream pharmacy { server pharmacy-service:8000; }
+        upstream billing { server billing-service:8000; }
+        upstream integration { server integration-service:8000; }
+        server {
+            listen 80;
+            server_name localhost;
+            location /registration/ { proxy_pass http://registration/; proxy_set_header Host $host; proxy_set_header X-Real-IP $remote_addr; proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for; proxy_set_header X-Forwarded-Proto $scheme; }
+            location /medical/ { proxy_pass http://medical/; proxy_set_header Host $host; proxy_set_header X-Real-IP $remote_addr; proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for; proxy_set_header X-Forwarded-Proto $scheme; }
+            location /pharmacy/ { proxy_pass http://pharmacy/; proxy_set_header Host $host; proxy_set_header X-Real-IP $remote_addr; proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for; proxy_set_header X-Forwarded-Proto $scheme; }
+            location /billing/ { proxy_pass http://billing/; proxy_set_header Host $host; proxy_set_header X-Real-IP $remote_addr; proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for; proxy_set_header X-Forwarded-Proto $scheme; }
+            location /integration/ { proxy_pass http://integration/; proxy_set_header Host $host; proxy_set_header X-Real-IP $remote_addr; proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for; proxy_set_header X-Forwarded-Proto $scheme; }
+            location / { return 404; }
+        }
+    }
