@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Integrasi Sistem Rumah Sakit - EAI</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="app">
+        <aside id="sidebar">
+            <div class="sidebar-header">
+                <h1>RS-EAI</h1>
+                <p>Sistem Integrasi Rumah Sakit</p>
+            </div>
+            <nav id="nav">
+                <a href="#" class="nav-item active" data-page="dashboard">
+                    Dashboard
+                </a>
+                <div class="nav-group-label">Layanan</div>
+                <a href="#" class="nav-item" data-page="registration">
+                    Registrasi
+                </a>
+                <a href="#" class="nav-item" data-page="medical">
+                    Rekam Medis
+                </a>
+                <a href="#" class="nav-item" data-page="pharmacy">
+                    Farmasi
+                </a>
+                <a href="#" class="nav-item" data-page="billing">
+                    Penagihan
+                </a>
+                <div class="nav-group-label">Sistem</div>
+                <a href="#" class="nav-item" data-page="integration">
+                    Integrasi
+                </a>
+            </nav>
+        </aside>
+
+        <main id="main">
+            <header id="topbar">
+                <button id="menu-toggle">☰</button>
+                <h2 id="page-title">Dashboard</h2>
+                <div id="topbar-right">
+                    <span id="clock"></span>
+                </div>
+            </header>
+
+            <div id="content">
+                <!-- Dashboard -->
+                <section id="page-dashboard" class="page active">
+                    <div class="stats-grid" id="health-cards">
+                        <div class="stat-card loading" data-service="registration">
+                            <div class="stat-title">Registrasi</div>
+                            <div class="stat-value">...</div>
+                            <div class="stat-label">Status</div>
+                        </div>
+                        <div class="stat-card loading" data-service="medical">
+                            <div class="stat-title">Rekam Medis</div>
+                            <div class="stat-value">...</div>
+                            <div class="stat-label">Status</div>
+                        </div>
+                        <div class="stat-card loading" data-service="pharmacy">
+                            <div class="stat-title">Farmasi</div>
+                            <div class="stat-value">...</div>
+                            <div class="stat-label">Status</div>
+                        </div>
+                        <div class="stat-card loading" data-service="billing">
+                            <div class="stat-title">Penagihan</div>
+                            <div class="stat-value">...</div>
+                            <div class="stat-label">Status</div>
+                        </div>
+                        <div class="stat-card loading" data-service="integration">
+                            <div class="stat-title">Integrasi</div>
+                            <div class="stat-value">...</div>
+                            <div class="stat-label">Status</div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>Enterprise Integration Patterns</h3>
+                        </div>
+                        <div class="card-body">
+                            <p>Sistem ini mengimplementasikan <strong>6 Enterprise Integration Patterns (EIP)</strong> menggunakan RabbitMQ sebagai message broker untuk mengintegrasikan seluruh layanan rumah sakit.</p>
+                            <div id="patterns-mini" class="patterns-list"></div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Registration -->
+                <section id="page-registration" class="page">
+                    <div class="card">
+                        <div class="card-header"><h3>Register Pasien Baru</h3></div>
+                        <div class="card-body">
+                            <form id="form-registration">
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="reg-patient_code">Kode Pasien</label>
+                                        <input type="text" id="reg-patient_code" placeholder="cth: P001" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="reg-name">Nama Lengkap</label>
+                                        <input type="text" id="reg-name" placeholder="Nama pasien" required>
+                                    </div>
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="reg-gender">Jenis Kelamin</label>
+                                        <select id="reg-gender" required>
+                                            <option value="">-- Pilih --</option>
+                                            <option value="Laki-laki">Laki-laki</option>
+                                            <option value="Perempuan">Perempuan</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="reg-birth_date">Tanggal Lahir</label>
+                                        <input type="date" id="reg-birth_date">
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label for="reg-address">Alamat</label>
+                                    <textarea id="reg-address" rows="2" placeholder="Alamat pasien"></textarea>
+                                </div>
+                                <button type="submit" class="btn btn-primary">Daftarkan Pasien</button>
+                            </form>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>Daftar Pasien</h3>
+                            <button class="btn btn-sm btn-outline" onclick="loadPatients()">↻ Refresh</button>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-wrapper">
+                                <table id="table-patients">
+                                    <thead>
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>Kode</th>
+                                            <th>Nama</th>
+                                            <th>Gender</th>
+                                            <th>Tgl Lahir</th>
+                                            <th>Alamat</th>
+                                            <th>Dibuat</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="tbody-patients">
+                                        <tr><td colspan="7" class="text-center">Memuat data...</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Medical Record -->
+                <section id="page-medical" class="page">
+                    <div class="card">
+                        <div class="card-header"><h3>Buat Rekam Medis Baru</h3></div>
+                        <div class="card-body">
+                            <form id="form-medical">
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="med-patient_code">Kode Pasien</label>
+                                        <input type="text" id="med-patient_code" placeholder="cth: P001" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="med-doctor_name">Nama Dokter</label>
+                                        <input type="text" id="med-doctor_name" placeholder="Nama dokter" required>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label for="med-diagnosis">Diagnosa</label>
+                                    <textarea id="med-diagnosis" rows="3" placeholder="Hasil diagnosa" required></textarea>
+                                </div>
+                                <div class="form-group">
+                                    <label for="med-prescription">Resep Obat</label>
+                                    <textarea id="med-prescription" rows="3" placeholder="Resep obat (opsional)"></textarea>
+                                </div>
+                                <button type="submit" class="btn btn-primary">Simpan Rekam Medis</button>
+                            </form>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>Riwayat Rekam Medis</h3>
+                            <button class="btn btn-sm btn-outline" onclick="loadMedicalRecords()">↻ Refresh</button>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-wrapper">
+                                <table id="table-medical">
+                                    <thead>
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>Pasien</th>
+                                            <th>Dokter</th>
+                                            <th>Diagnosa</th>
+                                            <th>Resep</th>
+                                            <th>Dibuat</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="tbody-medical">
+                                        <tr><td colspan="6" class="text-center">Memuat data...</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Pharmacy -->
+                <section id="page-pharmacy" class="page">
+                    <div class="card">
+                        <div class="card-header"><h3>Tambah Obat Baru</h3></div>
+                        <div class="card-body">
+                            <form id="form-medicine">
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="pharm-medicine_code">Kode Obat</label>
+                                        <input type="text" id="pharm-medicine_code" placeholder="cth: OB001" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="pharm-medicine_name">Nama Obat</label>
+                                        <input type="text" id="pharm-medicine_name" placeholder="Nama obat" required>
+                                    </div>
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="pharm-stock">Stok</label>
+                                        <input type="number" id="pharm-stock" min="0" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="pharm-price">Harga (Rp)</label>
+                                        <input type="number" id="pharm-price" min="0" step="500" required>
+                                    </div>
+                                </div>
+                                <button type="submit" class="btn btn-primary">Tambah Obat</button>
+                            </form>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header"><h3>Dispensasi Obat</h3></div>
+                        <div class="card-body">
+                            <form id="form-prescription">
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="presc-patient_code">Kode Pasien</label>
+                                        <input type="text" id="presc-patient_code" placeholder="cth: P001" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="presc-medicine_code">Kode Obat</label>
+                                        <input type="text" id="presc-medicine_code" placeholder="cth: OB001" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="presc-quantity">Jumlah</label>
+                                        <input type="number" id="presc-quantity" min="1" required>
+                                    </div>
+                                </div>
+                                <button type="submit" class="btn btn-warning">Dispensasi Obat</button>
+                            </form>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>Daftar Obat</h3>
+                            <button class="btn btn-sm btn-outline" onclick="loadMedicines()">↻ Refresh</button>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-wrapper">
+                                <table id="table-medicines">
+                                    <thead>
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>Kode</th>
+                                            <th>Nama Obat</th>
+                                            <th>Stok</th>
+                                            <th>Harga</th>
+                                            <th>Aksi</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="tbody-medicines">
+                                        <tr><td colspan="6" class="text-center">Memuat data...</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Billing -->
+                <section id="page-billing" class="page">
+                    <div class="card">
+                        <div class="card-header"><h3>Buat Invoice Baru</h3></div>
+                        <div class="card-body">
+                            <form id="form-invoice">
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="bill-patient_code">Kode Pasien</label>
+                                        <input type="text" id="bill-patient_code" placeholder="cth: P001" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="bill-service_fee">Biaya Layanan (Rp)</label>
+                                        <input type="number" id="bill-service_fee" min="0" step="1000" value="0">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="bill-medicine_fee">Biaya Obat (Rp)</label>
+                                        <input type="number" id="bill-medicine_fee" min="0" step="1000" value="0">
+                                    </div>
+                                </div>
+                                <button type="submit" class="btn btn-primary">Buat Invoice</button>
+                            </form>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>Daftar Invoice</h3>
+                            <button class="btn btn-sm btn-outline" onclick="loadInvoices()">↻ Refresh</button>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-wrapper">
+                                <table id="table-invoices">
+                                    <thead>
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>Pasien</th>
+                                            <th>Biaya Layanan</th>
+                                            <th>Biaya Obat</th>
+                                            <th>Total</th>
+                                            <th>Status</th>
+                                            <th>Dibuat</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="tbody-invoices">
+                                        <tr><td colspan="7" class="text-center">Memuat data...</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Integration -->
+                <section id="page-integration" class="page">
+                    <div class="card">
+                        <div class="card-header"><h3>Enterprise Integration Patterns</h3></div>
+                        <div class="card-body" id="integration-patterns">
+                            <p class="text-center">Memuat data...</p>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header"><h3>Message Queues</h3></div>
+                        <div class="card-body" id="integration-queues">
+                            <p class="text-center">Memuat data...</p>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <div id="toast-container"></div>
+
+    <script src="js/app.js"></script>
+</body>
+</html>
